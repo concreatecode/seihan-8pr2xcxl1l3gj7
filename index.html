@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="正反チェック">
+<meta name="theme-color" content="#0a6680">
+<title>正反観測チェック</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* 野帳（フィールドブック）：方眼の紙に、観測値は等幅の数字で並べる。上に判定のまとめ、下に対回ごとの入力 */
+:root {
+  --paper: #f4f6f5;
+  --sheet: #ffffff;
+  --grid: #e3e9e7;
+  --ink: #1d2a2b;
+  --muted: #5e6d6c;
+  --rule: #c9d3d1;
+  --accent: #0a6680;
+  --accent-soft: #e2f0f4;
+  --ok: #1f7a43;
+  --ok-soft: #e3f3e8;
+  --ng: #b3261e;
+  --ng-soft: #fbe6e4;
+  --wait: #8a6d1d;
+  --wait-soft: #f6efd9;
+  --font-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121a1b; --sheet: #192324; --grid: #213031; --ink: #e4ecea; --muted: #9db0ae;
+    --rule: #33474a; --accent: #5cc3df; --accent-soft: #15333b;
+    --ok: #6fd394; --ok-soft: #173826; --ng: #ff8a80; --ng-soft: #42201d; --wait: #e6c56a; --wait-soft: #3a311a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121a1b; --sheet: #192324; --grid: #213031; --ink: #e4ecea; --muted: #9db0ae;
+  --rule: #33474a; --accent: #5cc3df; --accent-soft: #15333b;
+  --ok: #6fd394; --ok-soft: #173826; --ng: #ff8a80; --ng-soft: #42201d; --wait: #e6c56a; --wait-soft: #3a311a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px 40px;
+}
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: grid; gap: 4px; }
+h1 { font-size: 24px; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.lead { margin: 0; color: var(--muted); font-size: 13.5px; }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.panel { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.panel h2 { font-size: 16px; margin: 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.panel h2 small { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+label.sel { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+select, input, button { font: inherit; color: var(--ink); }
+select { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12.5px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; }
+.tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 4px; gap: 4px; }
+.tabs button { border: 0; background: transparent; border-radius: 7px; padding: 8px 4px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); color: var(--sheet); }
+.tabs button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { border-bottom: 1px solid var(--grid); padding: 6px 4px; text-align: center; white-space: nowrap; }
+th { font-size: 12px; color: var(--muted); font-weight: 700; }
+td.l, th.l { text-align: left; }
+input.ang, input.name {
+  width: 100%; min-width: 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper);
+  padding: 7px 6px; font-family: var(--font-num); font-size: 15px; text-align: right;
+}
+input.name { font-family: var(--font-body); text-align: left; width: 4.2em; }
+input.ang { width: 7.4em; }
+.parsed { display: block; font-size: 11px; color: var(--muted); text-align: right; min-height: 1.2em; }
+.parsed.err { color: var(--ng); }
+.pill { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12.5px; font-weight: 700; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.ng { background: var(--ng-soft); color: var(--ng); }
+.pill.wait { background: var(--wait-soft); color: var(--wait); }
+.sum { display: grid; gap: 8px; }
+.sumrow { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; border: 1px solid var(--grid); border-radius: 8px; padding: 8px 10px; }
+.sumrow .pt { font-weight: 700; font-size: 16px; }
+.sumrow .ang { font-family: var(--font-num); font-size: 18px; font-weight: 600; }
+.sumrow .detail { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; font-family: var(--font-num); }
+.btn { border: 1px solid var(--rule); background: var(--sheet); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 700; }
+.btn.primary { background: var(--accent); color: var(--sheet); border-color: var(--accent); }
+.btn.danger { color: var(--ng); }
+.btn.armed { background: var(--ng); color: var(--sheet); border-color: var(--ng); }
+.note { font-size: 12.5px; color: var(--muted); margin: 0; }
+.howto { font-size: 13px; margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
+.tol input { width: 4.5em; text-align: right; font-family: var(--font-num); border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); padding: 5px 6px; }
+.sample { font-size: 12px; color: var(--wait); font-weight: 700; }
+@media (prefers-reduced-motion: no-preference) { .tabs button { transition: background .15s, color .15s; } }
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>正反観測チェック</h1>
+    <p class="lead">トラバース測量の正（表）・反（裏）の観測値から、倍角差・観測差・高度定数の較差を計算して判定します。</p>
+  </header>
+
+  <section class="panel" aria-label="区分と入力のしかた">
+    <div class="bar">
+      <label class="sel" for="grade">区分
+        <select id="grade">
+          <option>1級</option><option>2級</option><option>3級</option><option selected>4級</option>
+        </select>
+      </label>
+      <div class="chips" id="tolChips"></div>
+    </div>
+    <ul class="howto">
+      <li>角度は <b class="num">度.分秒</b> で入力（例：45°12′20″ → <b class="num">45.1220</b>、180°00′10″ → <b class="num">180.0010</b>）</li>
+      <li>反の読みは180°ずれたまま入れてOK。各対回の1行目が後視点です</li>
+    </ul>
+    <div class="bar">
+      <button class="btn" id="loadSample" type="button">入力例を読み込む</button>
+      <button class="btn danger" id="clearAll" type="button">すべて消す</button>
+      <span class="sample" id="sampleFlag" hidden>入力例を表示中</span>
+    </div>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="表示の切り替え">
+    <button role="tab" id="tab-h" aria-selected="true" aria-controls="pane-h" type="button">水平角</button>
+    <button role="tab" id="tab-v" aria-selected="false" aria-controls="pane-v" type="button">鉛直角</button>
+    <button role="tab" id="tab-t" aria-selected="false" aria-controls="pane-t" type="button">許容範囲</button>
+  </div>
+
+  <div id="pane-h" role="tabpanel" aria-labelledby="tab-h" class="wrap">
+    <section class="panel">
+      <h2>まとめ <small>前視点ごと・倍角差／観測差は2対回以上で判定</small></h2>
+      <div class="sum" id="hSummary"></div>
+    </section>
+    <div id="sets" class="wrap"></div>
+  </div>
+
+  <div id="pane-v" role="tabpanel" aria-labelledby="tab-v" class="wrap" hidden>
+    <section class="panel">
+      <h2>鉛直角（天頂角） <small>高度定数＝正＋反−360°</small></h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th class="l">点</th><th>正</th><th>反</th><th>高度定数</th><th>天頂角</th></tr></thead>
+          <tbody id="vRows"></tbody>
+        </table>
+      </div>
+      <div class="bar" id="vSummary"></div>
+    </section>
+  </div>
+
+  <div id="pane-t" role="tabpanel" aria-labelledby="tab-t" class="wrap" hidden>
+    <section class="panel tol">
+      <h2>許容範囲 <small>単位：秒</small></h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th class="l">区分</th><th>倍角差</th><th>観測差</th><th>高度定数の較差</th></tr></thead>
+          <tbody id="tolRows"></tbody>
+        </table>
+      </div>
+      <p class="note">作業規程の準則（公共測量）の基準点測量の値を初期値にしています。発注者の仕様書・作業規程と違うときは書き換えてください。</p>
+      <button class="btn" id="resetTol" type="button">初期値に戻す</button>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var NSET = 3, NPT = 4, NV = 6, FULL = 1296000;
+  var GRADES = ["1級", "2級", "3級", "4級"];
+  var TOL0 = { "1級": [15, 8, 10], "2級": [20, 10, 15], "3級": [30, 20, 30], "4級": [60, 40, 60] };
+  var KEY = "seihan-check-v1";
+
+  function blank() {
+    var s = { grade: "4級", tol: JSON.parse(JSON.stringify(TOL0)), names: ["", "", "", ""], h: [], v: [], sample: false };
+    for (var i = 0; i < NSET; i++) { var rows = []; for (var j = 0; j < NPT; j++) rows.push({ r: "", l: "" }); s.h.push(rows); }
+    for (var k = 0; k < NV; k++) s.v.push({ name: "", r: "", l: "" });
+    return s;
+  }
+  function sample() {
+    var s = blank();
+    s.names = ["A", "B", "", ""];
+    s.h[0][0] = { r: "0.0000", l: "180.0010" }; s.h[0][1] = { r: "45.1220", l: "225.1240" };
+    s.h[1][0] = { r: "90.0000", l: "270.0005" }; s.h[1][1] = { r: "135.1225", l: "315.1236" };
+    s.v[0] = { name: "A", r: "88.3010", l: "271.2940" }; s.v[1] = { name: "B", r: "91.0520", l: "268.5434" };
+    s.sample = true;
+    return s;
+  }
+  var st;
+  try { st = JSON.parse(localStorage.getItem(KEY)); } catch (e) { st = null; }
+  if (!st || !st.h) st = sample();
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+
+  // 「度.分秒」→ 秒。不正なら NaN、空なら null
+  function parseDMS(txt) {
+    var t = String(txt || "").trim();
+    if (t === "") return null;
+    if (!/^\d{1,3}(\.\d*)?$/.test(t)) return NaN;
+    var p = t.split("."), d = parseInt(p[0], 10), f = (p[1] || "");
+    var mm = parseInt((f.slice(0, 2) + "00").slice(0, 2), 10);
+    var ssTxt = f.slice(2);
+    var ss = ssTxt === "" ? 0 : parseFloat((ssTxt.slice(0, 2) + "00").slice(0, 2) + "." + ssTxt.slice(2));
+    if (mm >= 60 || ss >= 60 || d >= 360) return NaN;
+    return d * 3600 + mm * 60 + ss;
+  }
+  function r1(x) { return Math.round(x * 10) / 10; }
+  function fmt(sec, dec) {
+    if (sec === null || isNaN(sec)) return "";
+    var s = r1(sec), neg = s < 0; s = Math.abs(s);
+    var d = Math.floor(s / 3600), m = Math.floor((s - d * 3600) / 60), x = r1(s - d * 3600 - m * 60);
+    if (x >= 60) { x -= 60; m += 1; } if (m >= 60) { m -= 60; d += 1; }
+    var xs = dec ? x.toFixed(1) : String(Math.round(x));
+    if (parseFloat(xs) < 10) xs = "0" + xs;
+    return (neg ? "−" : "") + d + "°" + String(m).padStart(2, "0") + "′" + xs + "″";
+  }
+  function sgn(n) { return (n < 0 ? "−" : "") + Math.abs(r1(n)).toString(); }
+  function tol() { return st.tol[st.grade] || TOL0[st.grade]; }
+
+  // ---------- 水平角 ----------
+  function calcH() {
+    var res = [];
+    for (var i = 0; i < NSET; i++) {
+      var rows = st.h[i], back = { r: parseDMS(rows[0].r), l: parseDMS(rows[0].l) }, out = [];
+      for (var j = 0; j < NPT; j++) {
+        var R = parseDMS(rows[j].r), L = parseDMS(rows[j].l), o = { R: R, L: L };
+        if (j > 0 && typeof R === "number" && typeof L === "number" && !isNaN(R) && !isNaN(L)
+            && typeof back.r === "number" && typeof back.l === "number" && !isNaN(back.r) && !isNaN(back.l)) {
+          o.rr = ((R - back.r) % FULL + FULL) % FULL;
+          o.lr = ((L - back.l) % FULL + FULL) % FULL;
+        }
+        out.push(o);
+      }
+      res.push(out);
+    }
+    for (var p = 1; p < NPT; p++) {
+      var base = res[0][p].rr;
+      for (var k = 0; k < NSET; k++) {
+        var c = res[k][p];
+        if (c.rr !== undefined && base !== undefined) {
+          var b = Math.floor(base / 60) * 60;
+          c.bai = c.rr + c.lr - 2 * b;
+          c.kou = c.rr - c.lr;
+        }
+      }
+    }
+    return res;
+  }
+
+  function renderSets() {
+    var box = document.getElementById("sets"); box.innerHTML = "";
+    for (var i = 0; i < NSET; i++) {
+      var sec = document.createElement("section"); sec.className = "panel";
+      var html = '<h2>' + (i + 1) + '対回目 <small>正：後視→前視、反：前視→後視</small></h2><div class="scroll"><table><thead><tr>' +
+        '<th class="l">点</th><th>正</th><th>反</th><th>結果の平均</th><th>倍角</th><th>較差</th></tr></thead><tbody>';
+      for (var j = 0; j < NPT; j++) {
+        var nameCell = i === 0
+          ? '<input class="name" id="n' + j + '" data-name="' + j + '" placeholder="' + (j === 0 ? "後視" : "前視" + j) + '" value="' + esc(st.names[j]) + '">'
+          : '<span id="nl' + i + '-' + j + '">' + (esc(st.names[j]) || (j === 0 ? "後視" : "前視" + j)) + '</span>';
+        html += '<tr><td class="l">' + nameCell + '</td>' +
+          cell(i, j, "r") + cell(i, j, "l") +
+          '<td class="num" id="avg' + i + '-' + j + '"></td><td class="num" id="bai' + i + '-' + j + '"></td><td class="num" id="kou' + i + '-' + j + '"></td></tr>';
+      }
+      html += '</tbody></table></div>';
+      sec.innerHTML = html; box.appendChild(sec);
+    }
+  }
+  function cell(i, j, side) {
+    var id = "h" + i + "-" + j + side;
+    return '<td><input class="ang" id="' + id + '" inputmode="decimal" autocomplete="off" aria-label="' + (i + 1) + '対回目 ' + (j === 0 ? "後視" : "前視" + j) + (side === "r" ? " 正" : " 反") +
+      '" data-h="' + i + ',' + j + ',' + side + '" value="' + esc(st.h[i][j][side]) + '"><span class="parsed" id="p' + id + '"></span></td>';
+  }
+  function esc(s) { return String(s || "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+
+  function updateH() {
+    var res = calcH(), t = tol();
+    for (var i = 0; i < NSET; i++) for (var j = 0; j < NPT; j++) {
+      ["r", "l"].forEach(function (side) {
+        var v = parseDMS(st.h[i][j][side]), el = document.getElementById("ph" + i + "-" + j + side);
+        if (v === null) { el.textContent = ""; el.className = "parsed"; }
+        else if (isNaN(v)) { el.textContent = "度.分秒で入力"; el.className = "parsed err"; }
+        else { el.textContent = fmt(v); el.className = "parsed"; }
+      });
+      var c = res[i][j];
+      document.getElementById("avg" + i + "-" + j).textContent = j === 0 ? (c.R !== null && c.L !== null ? "基準" : "") : (c.rr !== undefined ? fmt((c.rr + c.lr) / 2, true) : "");
+      document.getElementById("bai" + i + "-" + j).textContent = c.bai !== undefined ? sgn(c.bai) : "";
+      document.getElementById("kou" + i + "-" + j).textContent = c.kou !== undefined ? sgn(c.kou) : "";
+      if (i > 0) { var nl = document.getElementById("nl" + i + "-" + j); if (nl) nl.textContent = st.names[j] || (j === 0 ? "後視" : "前視" + j); }
+    }
+    var sum = document.getElementById("hSummary"), html = "";
+    for (var p = 1; p < NPT; p++) {
+      var bais = [], kous = [], angs = [];
+      for (var k = 0; k < NSET; k++) { var x = res[k][p]; if (x.bai !== undefined) { bais.push(x.bai); kous.push(x.kou); angs.push(x.rr, x.lr); } }
+      if (!bais.length) continue;
+      var name = st.names[p] || ("前視" + p), n = bais.length;
+      var mean = angs.reduce(function (a, b) { return a + b; }, 0) / angs.length;
+      var pill, detail;
+      if (n < 2) { pill = '<span class="pill wait">2対回以上で判定</span>'; detail = "対回数 1"; }
+      else {
+        var bd = Math.max.apply(null, bais) - Math.min.apply(null, bais), kd = Math.max.apply(null, kous) - Math.min.apply(null, kous);
+        var ok = bd <= t[0] && kd <= t[1];
+        pill = '<span class="pill ' + (ok ? "ok" : "ng") + '">' + (ok ? "OK" : "再観測") + '</span>';
+        detail = "対回数 " + n + "　倍角差 " + r1(bd) + "″（許容" + t[0] + "″）　観測差 " + r1(kd) + "″（許容" + t[1] + "″）";
+      }
+      html += '<div class="sumrow"><span class="pt">' + esc(name) + '</span><span class="ang">' + fmt(mean, true) + '</span>' + pill + '<span class="detail">' + detail + '</span></div>';
+    }
+    sum.innerHTML = html || '<p class="note">後視点と前視点の正・反を入れると、ここに水平角と判定が出ます。</p>';
+  }
+
+  // ---------- 鉛直角 ----------
+  function renderV() {
+    var tb = document.getElementById("vRows"), html = "";
+    for (var i = 0; i < NV; i++) {
+      html += '<tr><td class="l"><input class="name" id="vn' + i + '" data-vname="' + i + '" placeholder="点' + (i + 1) + '" value="' + esc(st.v[i].name) + '"></td>' +
+        vcell(i, "r") + vcell(i, "l") + '<td class="num" id="vk' + i + '"></td><td class="num" id="vz' + i + '"></td></tr>';
+    }
+    tb.innerHTML = html;
+  }
+  function vcell(i, side) {
+    var id = "v" + i + side;
+    return '<td><input class="ang" id="' + id + '" inputmode="decimal" autocomplete="off" aria-label="鉛直角 点' + (i + 1) + (side === "r" ? " 正" : " 反") + '" data-v="' + i + ',' + side + '" value="' + esc(st.v[i][side]) + '"><span class="parsed" id="p' + id + '"></span></td>';
+  }
+  function updateV() {
+    var ks = [], t = tol();
+    for (var i = 0; i < NV; i++) {
+      var R = parseDMS(st.v[i].r), L = parseDMS(st.v[i].l);
+      [["r", R], ["l", L]].forEach(function (a) {
+        var el = document.getElementById("pv" + i + a[0]);
+        if (a[1] === null) { el.textContent = ""; el.className = "parsed"; }
+        else if (isNaN(a[1])) { el.textContent = "度.分秒で入力"; el.className = "parsed err"; }
+        else { el.textContent = fmt(a[1]); el.className = "parsed"; }
+      });
+      var kEl = document.getElementById("vk" + i), zEl = document.getElementById("vz" + i);
+      if (typeof R === "number" && typeof L === "number" && !isNaN(R) && !isNaN(L)) {
+        var k = R + L - FULL; ks.push(k);
+        kEl.textContent = sgn(k) + "″"; zEl.textContent = fmt((R - L + FULL) / 2, true);
+      } else { kEl.textContent = ""; zEl.textContent = ""; }
+    }
+    var box = document.getElementById("vSummary");
+    if (ks.length < 2) { box.innerHTML = '<span class="pill wait">2点以上で判定</span><span class="note">高度定数の較差（許容' + t[2] + '″）</span>'; return; }
+    var d = Math.max.apply(null, ks) - Math.min.apply(null, ks), ok = d <= t[2];
+    box.innerHTML = '<span class="pill ' + (ok ? "ok" : "ng") + '">' + (ok ? "OK" : "再観測") + '</span><span class="num">高度定数の較差 ' + r1(d) + '″（許容' + t[2] + '″）</span>';
+  }
+
+  // ---------- 許容範囲 ----------
+  function renderTol() {
+    var html = "";
+    GRADES.forEach(function (g) {
+      html += '<tr><td class="l">' + g + '</td>' + [0, 1, 2].map(function (k) {
+        return '<td><input id="t' + g + k + '" inputmode="numeric" aria-label="' + g + ['倍角差', '観測差', '高度定数の較差'][k] + '" data-tol="' + g + ',' + k + '" value="' + st.tol[g][k] + '"></td>';
+      }).join("") + '</tr>';
+    });
+    document.getElementById("tolRows").innerHTML = html;
+  }
+  function updateChips() {
+    var t = tol();
+    document.getElementById("tolChips").innerHTML =
+      '<span class="chip num">倍角差 ' + t[0] + '″</span><span class="chip num">観測差 ' + t[1] + '″</span><span class="chip num">高度定数 ' + t[2] + '″</span>';
+    document.getElementById("grade").value = st.grade;
+    document.getElementById("sampleFlag").hidden = !st.sample;
+  }
+  function all() { updateChips(); updateH(); updateV(); }
+  function rebuild() { renderSets(); renderV(); renderTol(); all(); }
+
+  document.addEventListener("input", function (e) {
+    var el = e.target, d;
+    if ((d = el.getAttribute("data-h"))) { var a = d.split(","); st.h[+a[0]][+a[1]][a[2]] = el.value; }
+    else if ((d = el.getAttribute("data-name")) !== null) { st.names[+d] = el.value; }
+    else if ((d = el.getAttribute("data-v"))) { var b = d.split(","); st.v[+b[0]][b[1]] = el.value; }
+    else if ((d = el.getAttribute("data-vname")) !== null) { st.v[+d].name = el.value; }
+    else if ((d = el.getAttribute("data-tol"))) { var c = d.split(","), n = parseFloat(el.value); if (!isNaN(n)) st.tol[c[0]][+c[1]] = n; }
+    else return;
+    st.sample = false; save(); all();
+  });
+  document.getElementById("grade").addEventListener("change", function (e) { st.grade = e.target.value; save(); all(); });
+  document.getElementById("loadSample").addEventListener("click", function () { st = sample(); save(); rebuild(); });
+  var armTimer = null, clearBtn = document.getElementById("clearAll");
+  clearBtn.addEventListener("click", function () {
+    if (clearBtn.classList.contains("armed")) {
+      clearTimeout(armTimer); clearBtn.classList.remove("armed"); clearBtn.textContent = "すべて消す";
+      var keep = { grade: st.grade, tol: st.tol }; st = blank(); st.grade = keep.grade; st.tol = keep.tol; save(); rebuild();
+    } else {
+      clearBtn.classList.add("armed"); clearBtn.textContent = "もう一度押すと消去";
+      armTimer = setTimeout(function () { clearBtn.classList.remove("armed"); clearBtn.textContent = "すべて消す"; }, 4000);
+    }
+  });
+  document.getElementById("resetTol").addEventListener("click", function () { st.tol = JSON.parse(JSON.stringify(TOL0)); save(); renderTol(); all(); });
+  var tabs = ["h", "v", "t"];
+  tabs.forEach(function (x) {
+    document.getElementById("tab-" + x).addEventListener("click", function () {
+      tabs.forEach(function (y) {
+        document.getElementById("tab-" + y).setAttribute("aria-selected", String(y === x));
+        document.getElementById("pane-" + y).hidden = y !== x;
+      });
+      try { localStorage.setItem(KEY + "-tab", x); } catch (e) {}
+    });
+  });
+  rebuild();
+  try { var lt = localStorage.getItem(KEY + "-tab"); if (lt && lt !== "h") document.getElementById("tab-" + lt).click(); } catch (e) {}
+  window.__seihan = { parseDMS: parseDMS, calcH: calcH, fmt: fmt, state: function () { return st; } };
+})();
+</script>
+
+</body>
+</html>
