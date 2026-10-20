@@ -72,7 +72,7 @@ select, input, button { font: inherit; color: var(--ink); }
 select { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 10px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: 12.5px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; }
-.tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 4px; gap: 4px; }
+.tabs { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 4px; gap: 4px; }
 .tabs button { border: 0; background: transparent; border-radius: 7px; padding: 8px 4px; font-weight: 700; color: var(--muted); cursor: pointer; }
 .tabs button[aria-selected="true"] { background: var(--accent); color: var(--sheet); }
 .tabs button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -83,10 +83,19 @@ th { font-size: 12px; color: var(--muted); font-weight: 700; }
 td.l, th.l { text-align: left; }
 input.ang, input.name {
   width: 100%; min-width: 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper);
-  padding: 7px 6px; font-family: var(--font-num); font-size: 15px; text-align: right;
+  padding: 7px 6px; font-family: var(--font-num); font-size: 16px; text-align: right;
 }
-input.name { font-family: var(--font-body); text-align: left; width: 4.2em; }
-input.ang { width: 7.4em; }
+input.name { font-family: var(--font-body); text-align: left; padding-inline: 5px; }
+/* 1点＝1ブロック：上の段に「点名・正・反」、下の段に結果。iPhone幅でも横にはみ出さない */
+.obs { display: grid; gap: 0; }
+.obs-head, .obs-row { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) minmax(0, 1fr); gap: 6px; align-items: start; }
+.obs-head { font-size: 12px; color: var(--muted); font-weight: 700; padding-bottom: 2px; border-bottom: 1px solid var(--rule); }
+.obs-head span:not(:first-child) { text-align: center; }
+.obs-row { padding: 8px 0; border-bottom: 1px solid var(--grid); }
+.obs-row .ptname { padding-top: 8px; font-weight: 700; overflow-wrap: anywhere; }
+.obs-res { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 14px; font-family: var(--font-num); font-size: 12.5px; color: var(--muted); }
+.obs-res:empty { display: none; }
+.obs-res b { color: var(--ink); font-weight: 600; }
 .parsed { display: block; font-size: 11px; color: var(--muted); text-align: right; min-height: 1.2em; }
 .parsed.err { color: var(--ng); }
 .pill { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12.5px; font-weight: 700; }
@@ -96,7 +105,7 @@ input.ang { width: 7.4em; }
 .sum { display: grid; gap: 8px; }
 .sumrow { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; border: 1px solid var(--grid); border-radius: 8px; padding: 8px 10px; }
 .sumrow .pt { font-weight: 700; font-size: 16px; }
-.sumrow .ang { font-family: var(--font-num); font-size: 18px; font-weight: 600; }
+.sumrow .ang { font-family: var(--font-num); font-size: 17px; font-weight: 600; min-width: 0; }
 .sumrow .detail { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; font-family: var(--font-num); }
 .btn { border: 1px solid var(--rule); background: var(--sheet); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-weight: 700; }
 .btn.primary { background: var(--accent); color: var(--sheet); border-color: var(--accent); }
@@ -104,7 +113,7 @@ input.ang { width: 7.4em; }
 .btn.armed { background: var(--ng); color: var(--sheet); border-color: var(--ng); }
 .note { font-size: 12.5px; color: var(--muted); margin: 0; }
 .howto { font-size: 13px; margin: 0; padding-left: 1.2em; display: grid; gap: 2px; }
-.tol input { width: 4.5em; text-align: right; font-family: var(--font-num); border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); padding: 5px 6px; }
+.tol input { width: 4.5em; font-size: 16px; text-align: right; font-family: var(--font-num); border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); padding: 5px 6px; }
 .sample { font-size: 12px; color: var(--wait); font-weight: 700; }
 @media (prefers-reduced-motion: no-preference) { .tabs button { transition: background .15s, color .15s; } }
 </style>
@@ -116,7 +125,7 @@ input.ang { width: 7.4em; }
 <div class="wrap">
   <header>
     <h1>正反観測チェック</h1>
-    <p class="lead">トラバース測量の正（表）・反（裏）の観測値から、倍角差・観測差・高度定数の較差を計算して判定します。</p>
+    <p class="lead">トラバース測量の正（表）・反（裏）の観測値から、倍角差・観測差を計算して判定します。</p>
   </header>
 
   <section class="panel" aria-label="区分と入力のしかた">
@@ -141,7 +150,6 @@ input.ang { width: 7.4em; }
 
   <div class="tabs" role="tablist" aria-label="表示の切り替え">
     <button role="tab" id="tab-h" aria-selected="true" aria-controls="pane-h" type="button">水平角</button>
-    <button role="tab" id="tab-v" aria-selected="false" aria-controls="pane-v" type="button">鉛直角</button>
     <button role="tab" id="tab-t" aria-selected="false" aria-controls="pane-t" type="button">許容範囲</button>
   </div>
 
@@ -153,25 +161,12 @@ input.ang { width: 7.4em; }
     <div id="sets" class="wrap"></div>
   </div>
 
-  <div id="pane-v" role="tabpanel" aria-labelledby="tab-v" class="wrap" hidden>
-    <section class="panel">
-      <h2>鉛直角（天頂角） <small>高度定数＝正＋反−360°</small></h2>
-      <div class="scroll">
-        <table>
-          <thead><tr><th class="l">点</th><th>正</th><th>反</th><th>高度定数</th><th>天頂角</th></tr></thead>
-          <tbody id="vRows"></tbody>
-        </table>
-      </div>
-      <div class="bar" id="vSummary"></div>
-    </section>
-  </div>
-
   <div id="pane-t" role="tabpanel" aria-labelledby="tab-t" class="wrap" hidden>
     <section class="panel tol">
       <h2>許容範囲 <small>単位：秒</small></h2>
       <div class="scroll">
         <table>
-          <thead><tr><th class="l">区分</th><th>倍角差</th><th>観測差</th><th>高度定数の較差</th></tr></thead>
+          <thead><tr><th class="l">区分</th><th>倍角差</th><th>観測差</th></tr></thead>
           <tbody id="tolRows"></tbody>
         </table>
       </div>
@@ -200,7 +195,6 @@ input.ang { width: 7.4em; }
     s.names = ["A", "B", "", ""];
     s.h[0][0] = { r: "0.0000", l: "180.0010" }; s.h[0][1] = { r: "45.1220", l: "225.1240" };
     s.h[1][0] = { r: "90.0000", l: "270.0005" }; s.h[1][1] = { r: "135.1225", l: "315.1236" };
-    s.v[0] = { name: "A", r: "88.3010", l: "271.2940" }; s.v[1] = { name: "B", r: "91.0520", l: "268.5434" };
     s.sample = true;
     return s;
   }
@@ -268,24 +262,24 @@ input.ang { width: 7.4em; }
     var box = document.getElementById("sets"); box.innerHTML = "";
     for (var i = 0; i < NSET; i++) {
       var sec = document.createElement("section"); sec.className = "panel";
-      var html = '<h2>' + (i + 1) + '対回目 <small>正：後視→前視、反：前視→後視</small></h2><div class="scroll"><table><thead><tr>' +
-        '<th class="l">点</th><th>正</th><th>反</th><th>結果の平均</th><th>倍角</th><th>較差</th></tr></thead><tbody>';
+      var html = '<h2>' + (i + 1) + '対回目 <small>正：後視→前視、反：前視→後視</small></h2><div class="obs">' +
+        '<div class="obs-head"><span>点</span><span>正（表）</span><span>反（裏）</span></div>';
       for (var j = 0; j < NPT; j++) {
+        var label = j === 0 ? "後視" : "前視" + j, ph = j === 0 ? "後視" : "前" + j;
         var nameCell = i === 0
-          ? '<input class="name" id="n' + j + '" data-name="' + j + '" placeholder="' + (j === 0 ? "後視" : "前視" + j) + '" value="' + esc(st.names[j]) + '">'
-          : '<span id="nl' + i + '-' + j + '">' + (esc(st.names[j]) || (j === 0 ? "後視" : "前視" + j)) + '</span>';
-        html += '<tr><td class="l">' + nameCell + '</td>' +
-          cell(i, j, "r") + cell(i, j, "l") +
-          '<td class="num" id="avg' + i + '-' + j + '"></td><td class="num" id="bai' + i + '-' + j + '"></td><td class="num" id="kou' + i + '-' + j + '"></td></tr>';
+          ? '<input class="name" id="n' + j + '" data-name="' + j + '" placeholder="' + ph + '" aria-label="' + label + 'の点名" value="' + esc(st.names[j]) + '">'
+          : '<span class="ptname" id="nl' + i + '-' + j + '">' + (esc(st.names[j]) || label) + '</span>';
+        html += '<div class="obs-row">' + nameCell + cell(i, j, "r") + cell(i, j, "l") +
+          '<div class="obs-res" id="res' + i + '-' + j + '"></div></div>';
       }
-      html += '</tbody></table></div>';
+      html += '</div>';
       sec.innerHTML = html; box.appendChild(sec);
     }
   }
   function cell(i, j, side) {
     var id = "h" + i + "-" + j + side;
-    return '<td><input class="ang" id="' + id + '" inputmode="decimal" autocomplete="off" aria-label="' + (i + 1) + '対回目 ' + (j === 0 ? "後視" : "前視" + j) + (side === "r" ? " 正" : " 反") +
-      '" data-h="' + i + ',' + j + ',' + side + '" value="' + esc(st.h[i][j][side]) + '"><span class="parsed" id="p' + id + '"></span></td>';
+    return '<div><input class="ang" id="' + id + '" inputmode="decimal" autocomplete="off" aria-label="' + (i + 1) + '対回目 ' + (j === 0 ? "後視" : "前視" + j) + (side === "r" ? " 正" : " 反") +
+      '" data-h="' + i + ',' + j + ',' + side + '" value="' + esc(st.h[i][j][side]) + '"><span class="parsed" id="p' + id + '"></span></div>';
   }
   function esc(s) { return String(s || "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
 
@@ -299,9 +293,11 @@ input.ang { width: 7.4em; }
         else { el.textContent = fmt(v); el.className = "parsed"; }
       });
       var c = res[i][j];
-      document.getElementById("avg" + i + "-" + j).textContent = j === 0 ? (c.R !== null && c.L !== null ? "基準" : "") : (c.rr !== undefined ? fmt((c.rr + c.lr) / 2, true) : "");
-      document.getElementById("bai" + i + "-" + j).textContent = c.bai !== undefined ? sgn(c.bai) : "";
-      document.getElementById("kou" + i + "-" + j).textContent = c.kou !== undefined ? sgn(c.kou) : "";
+      var resEl = document.getElementById("res" + i + "-" + j);
+      if (j === 0) resEl.innerHTML = (c.R !== null && c.L !== null) ? "後視（基準）" : "";
+      else if (c.rr !== undefined) resEl.innerHTML = '<span>平均 <b>' + fmt((c.rr + c.lr) / 2, true) + '</b></span>' +
+        (c.bai !== undefined ? '<span>倍角 <b>' + sgn(c.bai) + '</b></span><span>較差 <b>' + sgn(c.kou) + '</b></span>' : "");
+      else resEl.innerHTML = "";
       if (i > 0) { var nl = document.getElementById("nl" + i + "-" + j); if (nl) nl.textContent = st.names[j] || (j === 0 ? "後視" : "前視" + j); }
     }
     var sum = document.getElementById("hSummary"), html = "";
@@ -324,47 +320,12 @@ input.ang { width: 7.4em; }
     sum.innerHTML = html || '<p class="note">後視点と前視点の正・反を入れると、ここに水平角と判定が出ます。</p>';
   }
 
-  // ---------- 鉛直角 ----------
-  function renderV() {
-    var tb = document.getElementById("vRows"), html = "";
-    for (var i = 0; i < NV; i++) {
-      html += '<tr><td class="l"><input class="name" id="vn' + i + '" data-vname="' + i + '" placeholder="点' + (i + 1) + '" value="' + esc(st.v[i].name) + '"></td>' +
-        vcell(i, "r") + vcell(i, "l") + '<td class="num" id="vk' + i + '"></td><td class="num" id="vz' + i + '"></td></tr>';
-    }
-    tb.innerHTML = html;
-  }
-  function vcell(i, side) {
-    var id = "v" + i + side;
-    return '<td><input class="ang" id="' + id + '" inputmode="decimal" autocomplete="off" aria-label="鉛直角 点' + (i + 1) + (side === "r" ? " 正" : " 反") + '" data-v="' + i + ',' + side + '" value="' + esc(st.v[i][side]) + '"><span class="parsed" id="p' + id + '"></span></td>';
-  }
-  function updateV() {
-    var ks = [], t = tol();
-    for (var i = 0; i < NV; i++) {
-      var R = parseDMS(st.v[i].r), L = parseDMS(st.v[i].l);
-      [["r", R], ["l", L]].forEach(function (a) {
-        var el = document.getElementById("pv" + i + a[0]);
-        if (a[1] === null) { el.textContent = ""; el.className = "parsed"; }
-        else if (isNaN(a[1])) { el.textContent = "度.分秒で入力"; el.className = "parsed err"; }
-        else { el.textContent = fmt(a[1]); el.className = "parsed"; }
-      });
-      var kEl = document.getElementById("vk" + i), zEl = document.getElementById("vz" + i);
-      if (typeof R === "number" && typeof L === "number" && !isNaN(R) && !isNaN(L)) {
-        var k = R + L - FULL; ks.push(k);
-        kEl.textContent = sgn(k) + "″"; zEl.textContent = fmt((R - L + FULL) / 2, true);
-      } else { kEl.textContent = ""; zEl.textContent = ""; }
-    }
-    var box = document.getElementById("vSummary");
-    if (ks.length < 2) { box.innerHTML = '<span class="pill wait">2点以上で判定</span><span class="note">高度定数の較差（許容' + t[2] + '″）</span>'; return; }
-    var d = Math.max.apply(null, ks) - Math.min.apply(null, ks), ok = d <= t[2];
-    box.innerHTML = '<span class="pill ' + (ok ? "ok" : "ng") + '">' + (ok ? "OK" : "再観測") + '</span><span class="num">高度定数の較差 ' + r1(d) + '″（許容' + t[2] + '″）</span>';
-  }
-
   // ---------- 許容範囲 ----------
   function renderTol() {
     var html = "";
     GRADES.forEach(function (g) {
-      html += '<tr><td class="l">' + g + '</td>' + [0, 1, 2].map(function (k) {
-        return '<td><input id="t' + g + k + '" inputmode="numeric" aria-label="' + g + ['倍角差', '観測差', '高度定数の較差'][k] + '" data-tol="' + g + ',' + k + '" value="' + st.tol[g][k] + '"></td>';
+      html += '<tr><td class="l">' + g + '</td>' + [0, 1].map(function (k) {
+        return '<td><input id="t' + g + k + '" inputmode="numeric" aria-label="' + g + ['倍角差', '観測差'][k] + '" data-tol="' + g + ',' + k + '" value="' + st.tol[g][k] + '"></td>';
       }).join("") + '</tr>';
     });
     document.getElementById("tolRows").innerHTML = html;
@@ -372,19 +333,17 @@ input.ang { width: 7.4em; }
   function updateChips() {
     var t = tol();
     document.getElementById("tolChips").innerHTML =
-      '<span class="chip num">倍角差 ' + t[0] + '″</span><span class="chip num">観測差 ' + t[1] + '″</span><span class="chip num">高度定数 ' + t[2] + '″</span>';
+      '<span class="chip num">倍角差 ' + t[0] + '″</span><span class="chip num">観測差 ' + t[1] + '″</span>';
     document.getElementById("grade").value = st.grade;
     document.getElementById("sampleFlag").hidden = !st.sample;
   }
-  function all() { updateChips(); updateH(); updateV(); }
-  function rebuild() { renderSets(); renderV(); renderTol(); all(); }
+  function all() { updateChips(); updateH(); }
+  function rebuild() { renderSets(); renderTol(); all(); }
 
   document.addEventListener("input", function (e) {
     var el = e.target, d;
     if ((d = el.getAttribute("data-h"))) { var a = d.split(","); st.h[+a[0]][+a[1]][a[2]] = el.value; }
     else if ((d = el.getAttribute("data-name")) !== null) { st.names[+d] = el.value; }
-    else if ((d = el.getAttribute("data-v"))) { var b = d.split(","); st.v[+b[0]][b[1]] = el.value; }
-    else if ((d = el.getAttribute("data-vname")) !== null) { st.v[+d].name = el.value; }
     else if ((d = el.getAttribute("data-tol"))) { var c = d.split(","), n = parseFloat(el.value); if (!isNaN(n)) st.tol[c[0]][+c[1]] = n; }
     else return;
     st.sample = false; save(); all();
@@ -402,7 +361,7 @@ input.ang { width: 7.4em; }
     }
   });
   document.getElementById("resetTol").addEventListener("click", function () { st.tol = JSON.parse(JSON.stringify(TOL0)); save(); renderTol(); all(); });
-  var tabs = ["h", "v", "t"];
+  var tabs = ["h", "t"];
   tabs.forEach(function (x) {
     document.getElementById("tab-" + x).addEventListener("click", function () {
       tabs.forEach(function (y) {
@@ -413,7 +372,7 @@ input.ang { width: 7.4em; }
     });
   });
   rebuild();
-  try { var lt = localStorage.getItem(KEY + "-tab"); if (lt && lt !== "h") document.getElementById("tab-" + lt).click(); } catch (e) {}
+  try { var lt = localStorage.getItem(KEY + "-tab"); if (lt === "t") document.getElementById("tab-" + lt).click(); } catch (e) {}
   window.__seihan = { parseDMS: parseDMS, calcH: calcH, fmt: fmt, state: function () { return st; } };
 })();
 </script>
